@@ -1,26 +1,26 @@
 package main
 
 import (
+	"encoding/base64"
+	"flag"
+	"fmt"
+	"github.com/gorilla/securecookie"
+	"github.com/jwpari/slack_auth_proxy/slack"
 	"log"
 	"net"
 	"net/http"
-	"strings"
-	"flag"
 	"path/filepath"
-	"fmt"
-	"github.com/tappleby/slack_auth_proxy/slack"
-	"github.com/gorilla/securecookie"
-	"encoding/base64"
+	"strings"
 )
 
 const VERSION = "0.0.1"
 
 var (
-	defaultConfigFile, _ 	= filepath.Abs("./config.yml")
-	configFile           	= flag.String("config", defaultConfigFile, "path to config file.")
+	defaultConfigFile, _ = filepath.Abs("./config.yml")
+	configFile           = flag.String("config", defaultConfigFile, "path to config file.")
 
-	showVersion 			= flag.Bool("version", false, "print version string.")
-	showKeys 				= flag.Bool("keys", false, "prints encryption keys for secure cookie.")
+	showVersion = flag.Bool("version", false, "print version string.")
+	showKeys    = flag.Bool("keys", false, "prints encryption keys for secure cookie.")
 )
 
 func main() {
@@ -72,7 +72,7 @@ func main() {
 	server := &http.Server{Handler: oauthServer}
 	err = server.Serve(listener)
 	if err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
-	log.Printf("ERROR: http.Serve() - %s", err.Error())
+		log.Printf("ERROR: http.Serve() - %s", err.Error())
 	}
 
 	log.Printf("HTTP: closing %s", listener.Addr().String())

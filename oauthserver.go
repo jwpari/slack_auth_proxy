@@ -1,23 +1,23 @@
 package main
 
 import (
-	"log"
-	"github.com/tappleby/slack_auth_proxy/slack"
-	"net/http"
+	"encoding/base64"
 	"fmt"
+	"github.com/gorilla/securecookie"
+	"github.com/jwpari/slack_auth_proxy/slack"
+	"html/template"
+	"log"
+	"net/http"
 	"net/http/httputil"
 	"strings"
-	"github.com/gorilla/securecookie"
 	"time"
-	"html/template"
-	"encoding/base64"
 )
 
 const (
-	signInPath = "/oauth2/sign_in"
-	oauthStartPath = "/oauth2/start"
+	signInPath        = "/oauth2/sign_in"
+	oauthStartPath    = "/oauth2/start"
 	oauthCallbackPath = "/oauth2/callback"
-	staticDir = "/_slackproxy"
+	staticDir         = "/_slackproxy"
 )
 
 var (
@@ -25,15 +25,15 @@ var (
 )
 
 type OAuthServer struct {
-	CookieKey string
-	Validator func(*slack.Auth, *UpstreamConfiguration) bool
-	HtpasswdFile* HtpasswdFile
+	CookieKey    string
+	Validator    func(*slack.Auth, *UpstreamConfiguration) bool
+	HtpasswdFile *HtpasswdFile
 
-	slackOauth *slack.OAuthClient
-	serveMux	*http.ServeMux
+	slackOauth    *slack.OAuthClient
+	serveMux      *http.ServeMux
 	staticHandler http.Handler
 
-	secureCookie *securecookie.SecureCookie
+	secureCookie    *securecookie.SecureCookie
 	upstreamsConfig UpstreamConfigurationMap
 
 	config *Configuration
@@ -71,22 +71,21 @@ func NewOauthServer(slackOauth *slack.OAuthClient, config *Configuration) *OAuth
 
 	secureCookie := securecookie.New(hashKey, blockKey)
 
-
 	return &OAuthServer{
-		CookieKey: "_slackauthproxy",
-		Validator: NewValidator(),
-		serveMux: serveMux,
-		slackOauth: slackOauth,
+		CookieKey:       "_slackauthproxy",
+		Validator:       NewValidator(),
+		serveMux:        serveMux,
+		slackOauth:      slackOauth,
 		upstreamsConfig: upstreamsPathMap,
-		secureCookie: secureCookie,
-		staticHandler: http.FileServer(http.Dir("static")),
-		config: config,
+		secureCookie:    secureCookie,
+		staticHandler:   http.FileServer(http.Dir("static")),
+		config:          config,
 	}
 }
 
 func (s *OAuthServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	var ok bool
-	var user string
+	var user *HtEntry
 
 	// check if this is a redirect back at the end of oauth
 
@@ -110,7 +109,10 @@ func (s *OAuthServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		user, ok = s.ManualSignIn(rw, req)
 		if ok {
 			auth := &slack.Auth{
-				Username: user,
+				User: slack.User{
+					Id:   user.Username,
+					Name: user.Name,
+				},
 			}
 			encoded, err := s.secureCookie.Encode(s.CookieKey, auth)
 
@@ -129,13 +131,13 @@ func (s *OAuthServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	} else if reqPath == oauthStartPath {
 		s.handleOAuthStart(rw, req)
 		return
-	} else if (reqPath == oauthCallbackPath) {
+	} else if reqPath == oauthCallbackPath {
 		s.handleOAuthCallback(rw, req)
 		return
-	} else if (strings.HasPrefix(reqPath, staticDir)) {
+	} else if strings.HasPrefix(reqPath, staticDir) {
 		req.URL.Path = strings.Replace(reqPath, staticDir, "", 1)
-		s.staticHandler.ServeHTTP(rw, req);
-		return;
+		s.staticHandler.ServeHTTP(rw, req)
+		return
 	}
 
 	handler, pattern := s.serveMux.Handler(req)
@@ -146,16 +148,19 @@ func (s *OAuthServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-
 	if !ok {
 		cookie, _ := req.Cookie(s.CookieKey)
 
 		if cookie != nil {
 			auth := new(slack.Auth)
-			s.secureCookie.Decode(s.CookieKey, cookie.Value, &auth);
+			s.secureCookie.Decode(s.CookieKey, cookie.Value, &auth)
 
 			ok = s.Validator(auth, upstreamConfig)
-			user = auth.Username
+			user = &HtEntry{
+				Username: auth.User.Id,
+				Name:     auth.User.Name,
+			}
+
 		}
 	}
 
@@ -164,7 +169,10 @@ func (s *OAuthServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 		if basicOk {
 			auth := &slack.Auth{
-				Username: user,
+				User: slack.User{
+					Id:   user.Username,
+					Name: user.Name,
+				},
 			}
 			ok = s.Validator(auth, upstreamConfig)
 		}
@@ -177,8 +185,9 @@ func (s *OAuthServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	if s.config.PassBasicAuth {
-		req.SetBasicAuth(user, "")
-		req.Header["X-Forwarded-User"] = []string{user}
+		req.SetBasicAuth(user.Username, "")
+		req.Header["X-Forwarded-User"] = []string{user.Username}
+		req.Header["X-Forwarded-Name"] = []string{user.Name}
 	}
 
 	handler.ServeHTTP(rw, req)
@@ -204,16 +213,16 @@ func (s *OAuthServer) handleSignIn(rw http.ResponseWriter, req *http.Request) {
 	s.ClearCookie(rw, req)
 
 	t := struct {
-		Title string
-		SignInUrl string
-		Redirect string
-		HtPasswd bool
+		Title          string
+		SignInUrl      string
+		Redirect       string
+		HtPasswd       bool
 		BasicRequested bool
 	}{
-		Title: "Sign in",
-		SignInUrl: signInPath,
-		Redirect: req.URL.RequestURI(),
-		HtPasswd: s.HtpasswdFile != nil,
+		Title:          "Sign in",
+		SignInUrl:      signInPath,
+		Redirect:       req.URL.RequestURI(),
+		HtPasswd:       s.HtpasswdFile != nil,
 		BasicRequested: req.FormValue("basic") == "1",
 	}
 
@@ -280,7 +289,7 @@ func (s *OAuthServer) handleOAuthCallback(rw http.ResponseWriter, req *http.Requ
 	}
 
 	if s.Validator(auth, upstreamConfig) {
-		log.Printf("authenticating %s completed", auth.Username)
+		log.Printf("authenticating %s (%s) completed", auth.User.Id, auth.User.Name)
 		s.SetCookie(rw, req, encoded)
 		http.Redirect(rw, req, redirect, 302)
 	} else {
@@ -292,9 +301,9 @@ func (s *OAuthServer) ErrorPage(rw http.ResponseWriter, code int, title string, 
 	log.Printf("ErrorPage %d %s %s", code, title, message)
 	rw.WriteHeader(code)
 	t := struct {
-			Title   string
-			Message string
-		}{
+		Title   string
+		Message string
+	}{
 		Title:   fmt.Sprintf("%d %s", code, title),
 		Message: message,
 	}
@@ -305,7 +314,7 @@ func (s *OAuthServer) ErrorPage(rw http.ResponseWriter, code int, title string, 
 func (s *OAuthServer) SetCookie(rw http.ResponseWriter, req *http.Request, val string) {
 	cookie := &http.Cookie{
 		Name:     s.CookieKey,
-		Value:   val,
+		Value:    val,
 		Path:     "/",
 		Domain:   s.getCookieDomain(req),
 		Expires:  time.Now().Add(time.Duration(168) * time.Hour), // 7 days
@@ -328,47 +337,53 @@ func (s *OAuthServer) ClearCookie(rw http.ResponseWriter, req *http.Request) {
 	http.SetCookie(rw, cookie)
 }
 
-func (s *OAuthServer) CheckBasicAuth(req *http.Request) (string, bool) {
+func (s *OAuthServer) CheckBasicAuth(req *http.Request) (*HtEntry, bool) {
 	if s.HtpasswdFile == nil {
-		return "", false
+		return nil, false
 	}
 	str := strings.SplitN(req.Header.Get("Authorization"), " ", 2)
 	if len(str) != 2 || str[0] != "Basic" {
-		return "", false
+		return nil, false
 	}
 	b, err := base64.StdEncoding.DecodeString(str[1])
 	if err != nil {
-		return "", false
+		return nil, false
 	}
 	pair := strings.SplitN(string(b), ":", 2)
 	if len(pair) != 2 {
-		return "", false
+		return nil, false
 	}
 	if s.HtpasswdFile.Validate(pair[0], pair[1]) {
 		log.Printf("authenticated %s via basic auth", pair[0])
-		return pair[0], true
+		user, err := s.HtpasswdFile.Fetch(pair[0])
+		if err != nil {
+			return nil, false
+		}
+		return user, true
 	}
-	return "", false
+	return nil, false
 }
 
-func (s *OAuthServer) ManualSignIn(rw http.ResponseWriter, req *http.Request) (string, bool) {
+func (s *OAuthServer) ManualSignIn(rw http.ResponseWriter, req *http.Request) (*HtEntry, bool) {
 	if req.Method != "POST" || s.HtpasswdFile == nil {
-		return "", false
+		return nil, false
 	}
 	user := req.FormValue("username")
 	passwd := req.FormValue("password")
-	if user == "" {
-		return "", false
-	}
+
 	// check auth
 	if s.HtpasswdFile.Validate(user, passwd) {
 		log.Printf("authenticated %s via manual sign in", user)
+		user, err := s.HtpasswdFile.Fetch(user)
+		if err != nil {
+			return nil, false
+		}
 		return user, true
 	}
-	return "", false
+	return nil, false
 }
 
-func (s *OAuthServer) renderTemplate(rw http.ResponseWriter, tmpl string, data interface {}) {
+func (s *OAuthServer) renderTemplate(rw http.ResponseWriter, tmpl string, data interface{}) {
 	err := oauthTemplates.ExecuteTemplate(rw, tmpl+".html", data)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)

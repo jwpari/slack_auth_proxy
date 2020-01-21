@@ -1,39 +1,36 @@
 package main
 
 import (
+	"fmt"
 	yaml "gopkg.in/yaml.v1"
 	"io/ioutil"
-	"fmt"
 )
 
 const (
 	defaultServerAddr = "127.0.0.1:4180"
 )
 
-
-
 type Configuration struct {
 	// Server settings
-	ServerAddr		string 						`yaml:"server_addr,omitempty"`
-	Upstreams		[]*UpstreamConfiguration 	`yaml:"upstreams,omitempty"`
-	RedirectUri		string						`yaml:"redirect_uri,omitempty"`
-	PassBasicAuth	bool 					 	`yaml:"pass_basic_auth,omitempty"`
+	ServerAddr    string                   `yaml:"server_addr,omitempty"`
+	Upstreams     []*UpstreamConfiguration `yaml:"upstreams,omitempty"`
+	RedirectUri   string                   `yaml:"redirect_uri,omitempty"`
+	PassBasicAuth bool                     `yaml:"pass_basic_auth,omitempty"`
 
 	// Cookie settings
-	CookieDomain	string						`yaml:"cookie_domain,omitempty"`
-	CookieHashKey	string						`yaml:"cookie_hash_key,omitempty"`
-	CookieBlockKey	string						`yaml:"cookie_block_key,omitempty"`
+	CookieDomain   string `yaml:"cookie_domain,omitempty"`
+	CookieHashKey  string `yaml:"cookie_hash_key,omitempty"`
+	CookieBlockKey string `yaml:"cookie_block_key,omitempty"`
 
 	// Slack Settings
-	ClientId 		string 						`yaml:"client_id"`
-	ClientSecret 	string 						`yaml:"client_secret"`
-	SlackTeam 		string 					 	`yaml:"slack_team,omitempty"`
-	AuthToken		string 					 	`yaml:"auth_token,omitempty"`
+	ClientId     string `yaml:"client_id"`
+	ClientSecret string `yaml:"client_secret"`
+	SlackTeam    string `yaml:"slack_team,omitempty"`
+	AuthToken    string `yaml:"auth_token,omitempty"`
 
 	//Other settings
-	HtPasswdFile	string						`yaml:"htpasswd_file,omitempty"`
-	Debug			bool 					 	`yaml:"debug,omitempty"`
-
+	HtPasswdFile string `yaml:"htpasswd_file,omitempty"`
+	Debug        bool   `yaml:"debug,omitempty"`
 }
 
 func LoadConfiguration(configFile string) (config *Configuration, err error) {
@@ -46,15 +43,13 @@ func LoadConfiguration(configFile string) (config *Configuration, err error) {
 	}
 
 	config = &Configuration{
-		ServerAddr: defaultServerAddr,
+		ServerAddr:    defaultServerAddr,
 		PassBasicAuth: true,
 	}
-
 
 	if err = yaml.Unmarshal(configBuf, &config); err != nil {
 		return
 	}
-
 
 	if config.ClientId == "" {
 		err = fmt.Errorf("Client id must be set in configuration")
@@ -86,7 +81,6 @@ func LoadConfiguration(configFile string) (config *Configuration, err error) {
 			return
 		}
 	}
-
 
 	return
 }

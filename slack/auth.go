@@ -4,17 +4,17 @@ type AuthService struct {
 	api *SlackClient
 }
 
+type User struct {
+	Id 	string  `json:"id"`
+	Name string `json:"name"`
+}
 type Auth struct {
-	UserId 	 string  `json:"user_id"`
-	Username string	 `json:"user"`
-	Team 	 string  `json:"team"`
-	TeamId 	 string  `json:"team_id"`
-	TeamUrl  string  `json:"url"`
+	User User	`json:"user"`
 }
 
 func (s *AuthService) Test() (*Auth, error) {
 
-	req, _ := s.api.NewRequest(_GET, "auth.test", nil)
+	req, _ := s.api.NewRequest(_GET, "users.identity", nil)
 
 	auth := new(Auth)
 

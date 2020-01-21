@@ -2,26 +2,24 @@ package main
 
 import (
 	"net/url"
-	"strings"
 )
 
 type UpstreamConfiguration struct {
-	Host 	string	 `yaml:"host,omitempty"`
+	Host    string   `yaml:"host,omitempty"`
 	HostURL *url.URL `yaml:"-"`
 
-	Users 	[]string `yaml:"users,omitempty"`
-	Groups  []string `yaml:"groups,omitempty"`
+	Users  []string `yaml:"users,omitempty"`
+	Groups []string `yaml:"groups,omitempty"`
 }
 
 type UpstreamConfigurationMap map[string]*UpstreamConfiguration
 
 func (configMap UpstreamConfigurationMap) Find(pattern string) *UpstreamConfiguration {
 	upstreamConfig := configMap[pattern]
-
 	if upstreamConfig == nil {
-		pattern = strings.TrimPrefix(pattern, "/")
-		upstreamConfig = configMap[pattern]
+		upstreamConfig = configMap["/"]
 	}
+
 
 	return upstreamConfig
 }
