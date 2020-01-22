@@ -51,9 +51,8 @@ func NewOAuthClient(clientID, clientSecret, redirectUri string) *OAuthClient {
 func (cl *OAuthClient) LoginUrl(state string) *url.URL {
 	u := *cl.authorizeUrl;
 	uq := u.Query()
-
 	uq.Add("redirect_uri", cl.RedirectUri)
-	uq.Add("scope", "identify")
+	uq.Add("scope", "identity.basic")
 	uq.Add("client_id", cl.ClientId)
 	uq.Add("state", state)
 
@@ -76,7 +75,7 @@ func (cl *OAuthClient) RedeemCode(code string) (*AccessToken, error) {
 	uq := url.Values{}
 
 	uq.Add("redirect_uri", cl.RedirectUri)
-	uq.Add("scope", "identify")
+	uq.Add("scope", "identity.basic")
 	uq.Add("client_id", cl.ClientId)
 	uq.Add("client_secret", cl.ClientSecret)
 	uq.Add("code", code)

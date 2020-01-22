@@ -6,7 +6,7 @@
 # Mac
 .DS_Store
 /slack_auth_proxy
-
+htpasswd
 /config.yml
 
 /run.sh

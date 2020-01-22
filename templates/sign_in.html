@@ -2,11 +2,10 @@
 <div class="row signin-container">
     <div class="col-xs-12 col-sm-8 col-md-6 col-sm-offset-2 col-md-offset-3 page-widget">
         <div class="signin">
-            <h2>Please Sign In</h2>
-            <hr class="colorgraph">
+            <img class='logo' src="/_slackproxy/logo.jpg" width="400" alt=""/>
+            <hr />
             <a class="btn btn-link btn-signin" href="/oauth2/start?rd={{ .Redirect }}">
-                <img src="/_slackproxy/large-slack-logo.png" alt=""/>
-                Sign in via Slack
+                <img src="/_slackproxy/sign_in_with_slack.png" alt=""/>
             </a>
             {{ if .HtPasswd }}
             {{ if .BasicRequested }}
@@ -24,7 +23,7 @@
                 </form>
             {{ else }}
             <div class="form-sep">
-                <a href="?basic=1" class="pull-right">Manual login.</a>
+                <a href="?basic=1" class="pull-right">Guest login.</a>
             </div>
             {{ end }}
             {{ end }}
