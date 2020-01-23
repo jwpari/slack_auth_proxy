@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	slackOAuthAuthorizeUrl = "https://slack.com/oauth/authorize"
+	slackOAuthAuthorizeUrl = "https://acwpodcast.slack.com/oauth/authorize"
 	slackOAuthRedeemUrl    = "https://slack.com/api/oauth.access"
 )
 
