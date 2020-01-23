@@ -5,7 +5,7 @@
             <img class='logo' src="/_slackproxy/logo.jpg" width="100%" alt=""/>
             <hr />
             <a class="btn btn-link btn-signin" href="/oauth2/start?rd={{ .Redirect }}">
-                <img src="/_slackproxy/sign_in_with_slack.png" alt=""/>
+                <div class="sign_in_with_slack_button"></div>
             </a>
             {{ if .HtPasswd }}
             {{ if .BasicRequested }}
@@ -27,7 +27,7 @@
             </div>
             {{ end }}
             {{ end }}
-        </div>
+        </a>
     </div>
 </div>
 {{template "footer.html" .}}
