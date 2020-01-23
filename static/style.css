@@ -28,11 +28,9 @@ html, body {
 
 .btn-signin > img {
     display: block;
-    width: 260px;
-    padding-bottom: 0.5em;
+    width: 75%;
     margin-left: auto;
     margin-right: auto;
-    padding-right: 40px;
 }
 
 .page-widget {
