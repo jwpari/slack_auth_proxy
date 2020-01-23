@@ -4,13 +4,14 @@ import (
 	"encoding/base64"
 	"flag"
 	"fmt"
-	"github.com/gorilla/securecookie"
-	"github.com/jwpari/slack_auth_proxy/slack"
 	"log"
 	"net"
 	"net/http"
 	"path/filepath"
 	"strings"
+
+	"github.com/gorilla/securecookie"
+	"github.com/jwpari/slack_auth_proxy/slack"
 )
 
 const VERSION = "0.0.1"
@@ -57,7 +58,7 @@ func main() {
 	}
 	log.Printf("listening on %s", config.ServerAddr)
 
-	oauthClient := slack.NewOAuthClient(config.ClientId, config.ClientSecret, config.RedirectUri)
+	oauthClient := slack.NewOAuthClient(config.ClientId, config.ClientSecret, config.RedirectUri, config.SlackTeam)
 	oauthClient.TeamId = config.SlackTeam
 
 	oauthServer := NewOauthServer(oauthClient, config)

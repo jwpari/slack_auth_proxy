@@ -1,27 +1,27 @@
 package slack
 
 import (
-	"net/url"
-	"errors"
-	"net/http"
 	"bytes"
 	"encoding/json"
+	"errors"
+	"net/http"
+	"net/url"
 )
 
 const (
 	slackOAuthAuthorizeUrl = "https://slack.com/oauth/authorize"
-	slackOAuthRedeemUrl = "https://slack.com/api/oauth.access"
+	slackOAuthRedeemUrl    = "https://slack.com/api/oauth.access"
 )
 
 type OAuthClient struct {
-	ClientId string
+	ClientId     string
 	ClientSecret string
-	TeamId string
-	RedirectUri string
+	TeamId       string
+	RedirectUri  string
 
-	redeemUrl *url.URL
+	redeemUrl    *url.URL
 	authorizeUrl *url.URL
-	httpClient *http.Client
+	httpClient   *http.Client
 }
 
 type AccessToken struct {
@@ -29,27 +29,25 @@ type AccessToken struct {
 	Scope string `json:"scope"`
 }
 
-func NewOAuthClient(clientID, clientSecret, redirectUri string) *OAuthClient {
+func NewOAuthClient(clientID, clientSecret, redirectUri, teamId string) *OAuthClient {
 
 	authorize, _ := url.Parse(slackOAuthAuthorizeUrl)
 	redeem, _ := url.Parse(slackOAuthRedeemUrl)
 
 	return &OAuthClient{
-		ClientId: clientID,
+		ClientId:     clientID,
 		ClientSecret: clientSecret,
-		RedirectUri: redirectUri,
+		RedirectUri:  redirectUri,
+		TeamId:       teamId,
 
 		authorizeUrl: authorize,
-		redeemUrl: redeem,
-
-		httpClient: http.DefaultClient,
+		redeemUrl:    redeem,
+		httpClient:   http.DefaultClient,
 	}
 }
 
-
-
 func (cl *OAuthClient) LoginUrl(state string) *url.URL {
-	u := *cl.authorizeUrl;
+	u := *cl.authorizeUrl
 	uq := u.Query()
 	uq.Add("redirect_uri", cl.RedirectUri)
 	uq.Add("scope", "identity.basic")
@@ -71,7 +69,6 @@ func (cl *OAuthClient) RedeemCode(code string) (*AccessToken, error) {
 		return nil, errors.New("Missing code")
 	}
 
-
 	uq := url.Values{}
 
 	uq.Add("redirect_uri", cl.RedirectUri)
@@ -80,7 +77,7 @@ func (cl *OAuthClient) RedeemCode(code string) (*AccessToken, error) {
 	uq.Add("client_secret", cl.ClientSecret)
 	uq.Add("code", code)
 
-	req, err := http.NewRequest(_POST, cl.redeemUrl.String(), bytes.NewBufferString(uq.Encode()));
+	req, err := http.NewRequest(_POST, cl.redeemUrl.String(), bytes.NewBufferString(uq.Encode()))
 
 	if err != nil {
 		return nil, err
